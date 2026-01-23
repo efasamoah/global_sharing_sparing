@@ -115,6 +115,9 @@ process_year <- function(year){
       return(NULL)
     })
     
+    # Clean up terra temp files inside the worker
+    terra::tmpFiles(current = TRUE, orphan = FALSE, remove = TRUE)
+    
   }, future.seed = TRUE, 
   future.scheduling = 1, 
   future.packages = c("terra", "glue"))
