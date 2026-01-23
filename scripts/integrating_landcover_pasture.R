@@ -1,4 +1,4 @@
-# Classifying land cover and Merging cultivated grassland
+# Classifying Land Cover and Merging Cultivated Grassland
 
 # Dr. Ernest Frimpong Asamoah
 # Last updated 22 January 2026

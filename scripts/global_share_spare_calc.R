@@ -7,7 +7,7 @@ global_share_spare_pipeline <- function(year) {
   agric_intensity <- rast(grep(year, globalIntensityDataPath, value = TRUE))
   
   # Initialize empty results list
-  results_list <- lapply(seq_along(gridID), function(i){
+  results_list <- future_lapply(seq_along(gridID), function(i){
     
     id <- gridID[i]
     
@@ -87,7 +87,9 @@ global_share_spare_pipeline <- function(year) {
         stringsAsFactors = FALSE
       )
     }
-  })
+  }, future.seed = TRUE, 
+  future.scheduling = 1, 
+  future.packages = c("terra", "glue", "fitdistrplus", "sf"))
   
   # Combine all results
   cat(sprintf("  [%s] Combining results...\n", Sys.time()))
@@ -122,9 +124,13 @@ source("D:/R/Jonathan/global_sharing_sparing/scripts/helper_functions.R")
 # RUN IT
 print(paste("Started at:", Sys.time()))
 
+# Process years sequentially, tiles in parallel
+plan(multisession, workers = 10)
+
 for(year in years){
   global_share_spare_pipeline(year)
   gc()
 }
 
 print(paste("\n\nFinished at:", Sys.time()))
+plan(sequential)
