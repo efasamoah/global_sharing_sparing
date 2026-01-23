@@ -67,11 +67,12 @@ library(tidyverse)
 library(terra)
 library(sf)
 library(glue)
+library(gfcanalysis)
 
 main_dir <- "U:/ULVCSK5231/Analyses_2026"
 
 for (focal_year in c(2000, 2005, 2010, 2015, 2020)) {
-  output_dir <- file.path(getwd(), glue("land_use_change/gfc_lulc/yr{focal_year}"))
+  output_dir <- file.path("E:/data_sharing_sparing", glue("land_use_change/gfc_lulc/{focal_year}"))
   
   download_glucc(gfc_tiles,
                  output_folder = output_dir, 

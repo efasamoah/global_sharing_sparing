@@ -1,22 +1,28 @@
-
 # Main function
 global_share_spare_pipeline <- function(year) {
-
   # Read data
-  fishnet_polygon <- st_read(globalFishnetPath, quite = TRUE)
+  fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
   gridID <- unique(fishnet_polygon$PageName)
   
   agric_intensity <- rast(grep(year, globalIntensityDataPath, value = TRUE))
   
   # Initialize empty results list
-  results_list <- lapply(gridID, function(id){
+  results_list <- lapply(seq_along(gridID), function(i){
+    
+    id <- gridID[i]
+    
+    # Print progress every 10 grids (adjust frequency as needed)
+    if(i %% 10 == 0) {
+      cat(sprintf("  [%s] Progress: %d/%d (%.1f%%) - Current ID: %s\n", 
+                  Sys.time(), i, length(gridID), (i/length(gridID))*100, id))
+    }
     
     focalGrid <- subset(fishnet_polygon, PageName == id)
     focalGridBuffered <- st_buffer(focalGrid, grid_size)
     
     # Extract values
     intensity_per_grid <- crop(agric_intensity, focalGridBuffered)
-    grid_values <- as.vector(intensity_per_grid)
+    grid_values <- values(intensity_per_grid)
     grid_values <- grid_values[!is.na(grid_values)]
     
     n_valid <- length(grid_values)
@@ -45,6 +51,7 @@ global_share_spare_pipeline <- function(year) {
         )
         
       }, error = function(e) {
+        cat(sprintf("  [ERROR] Grid %s failed: %s\n", id, e$message))
         data.frame(
           grid_id = id, 
           n_pixels = n_valid, 
@@ -83,14 +90,14 @@ global_share_spare_pipeline <- function(year) {
   })
   
   # Combine all results
+  cat(sprintf("  [%s] Combining results...\n", Sys.time()))
   all_Results <- do.call(rbind, results_list)
-  write.csv(all_Results, 
-            file.path(main_dir, paste0("global_share_spare_",year,"_60km_results.csv"), row.names=FALSE)
-            )
   
+  # Write results
+  output_file <- file.path(main_dir, paste0("global_share_spare_", year, "_60km_results.csv"))
+  write.csv(all_Results, output_file, row.names = FALSE)
   return(list(results = all_Results))
 }
-
 
 print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
 

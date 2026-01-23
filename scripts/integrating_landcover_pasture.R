@@ -1,13 +1,7 @@
 # Classifying land cover and Merging cultivated grassland
-# Ernest Asamoah
-# Last updated 22 Jan. 2026
 
-library(terra)
-library(glue)
-library(future.apply)
-
-years <- c(2000, 2005, 2010, 2015, 2020)
-target_res_m <- 2400
+# Dr. Ernest Frimpong Asamoah
+# Last updated 22 January 2026
 
 # Function to process one year
 process_year <- function(year){
@@ -24,12 +18,6 @@ process_year <- function(year){
     return(NULL)
   }
   
-  cultivated_files <- list.files(
-    "E:/data_sharing_sparing/cultivated", 
-    pattern = "\\.tif$", 
-    full.names = TRUE
-  )
-  
   OutPutFolder <- file.path("E:/data_sharing_sparing/land_use_change/agric_intensity", year)
   if(!dir.exists(OutPutFolder)){
     dir.create(OutPutFolder, recursive = TRUE)
@@ -38,6 +26,9 @@ process_year <- function(year){
   future_lapply(glclu_files, function(k){
     
     tryCatch({
+      # Set terra options
+      terraOptions(memfrac = 0.9, todisk = TRUE, tempdir = "E:/terra_tmp")
+      
       # Set path
       OutputFilePath <- file.path(
         OutPutFolder, 
@@ -57,18 +48,15 @@ process_year <- function(year){
       }
       cultivated_grassland <- rast(cultivated_grassland_file)
       
-      # Read the land cover
       lulcc <- rast(k)
-      # Define NoData values
-      NoData <- c(0, 1, 200:207, 241, 250, 254)
-      
-      # Set NoData values to NA
-      lulcc[lulcc %in% NoData] <- NA
+      # Set built-up, water bodies, pure deserts, permanent ice values to NA
       # Classify: 244 = grassland (becomes 1), everything else becomes 0
+      NoData <- c(0, 1, 200:207, 241, 250, 254)
+      lulcc[lulcc %in% NoData] <- NA
       glclu_tile <- classify(lulcc, cbind(244, 1), others = 0)
       
       # Crop to extent of lulcc
-      cult_grass <- crop(cultivated_grassland, lulcc)
+      cult_grass <- crop(cultivated_grassland, lulcc, snap = "out")
       cult_grass <- cult_grass / 100
       
       # Align raster - use resample instead of project if same CRS
@@ -125,14 +113,29 @@ process_year <- function(year){
   return(year)
 }
 
+print("=== GLOBAL AGRICULTURE INTENSITY BY TILES ===")
+
+library(terra)
+library(glue)
+library(future.apply)
+
+years <- c(2000, 2005, 2010, 2015, 2020)
+target_res_m <- 2400
+
+cultivated_files <- list.files(
+  "E:/data_sharing_sparing/cultivated", 
+  pattern = "\\.tif$", 
+  full.names = TRUE
+)
+
 # Process years sequentially, tiles in parallel
 plan(multisession, workers = 8)
 
 for(year in years){
   process_year(year)
+  terra::tmpFiles(remove = TRUE)
   gc()
 }
-
 plan(sequential)
 
 
