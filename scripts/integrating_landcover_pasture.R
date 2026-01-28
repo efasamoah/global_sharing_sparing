@@ -1,7 +1,10 @@
-# Classifying Land Cover and Merging Cultivated Grassland
+
+# (1) This code classifies Global Forest Change's land-use and land cover maps by isolating removing built up, permanent forest, pure deserts and water bodies. 
+# (2) For any remaining areas not classified as cropland (natural areas), we assigned either cultivated grassland based on Global Pasture Watch's 30m resolution data
+# (3) We then calculate agriculture intensity for fraction of each 2400m x 2400m grid covered by agriculture (crop + pasture) 
 
 # Dr. Ernest Frimpong Asamoah
-# Last updated 22 January 2026
+# Last updated 28 January 2026
 
 # Function to process one year
 process_year <- function(year){
@@ -9,7 +12,7 @@ process_year <- function(year){
   message(glue("Starting year {year}"))
   
   glclu_files <- list.files(
-    file.path("E:/data_sharing_sparing/land_use_change/gfc_lulc", year), 
+    file.path(main_dir, "land_use_change/gfc_lulc", year), 
     pattern = "\\.tif$", 
     full.names = TRUE
   )
@@ -18,7 +21,7 @@ process_year <- function(year){
     return(NULL)
   }
   
-  OutPutFolder <- file.path("E:/data_sharing_sparing/land_use_change/agric_intensity", year)
+  OutPutFolder <- file.path(main_dir, "land_use_change/agric_intensity", year)
   if(!dir.exists(OutPutFolder)){
     dir.create(OutPutFolder, recursive = TRUE)
   }
@@ -27,7 +30,7 @@ process_year <- function(year){
     
     tryCatch({
       # Set terra options
-      terraOptions(memfrac = 0.9, todisk = TRUE, tempdir = "E:/terra_tmp")
+      terraOptions(todisk = TRUE, tempdir = "E:/terra_tmp")
       
       # Set path
       OutputFilePath <- file.path(
@@ -49,7 +52,7 @@ process_year <- function(year){
       cultivated_grassland <- rast(cultivated_grassland_file)
       
       lulcc <- rast(k)
-      # Set built-up, water bodies, pure deserts, permanent ice values to NA
+      # Set built-up, water bodies, pure deserts (0, 1), permanent ice () values to NA
       # Classify: 244 = grassland (becomes 1), everything else becomes 0
       NoData <- c(0, 1, 200:207, 241, 250, 254)
       lulcc[lulcc %in% NoData] <- NA
@@ -119,17 +122,23 @@ library(terra)
 library(glue)
 library(future.apply)
 
+main_dir <- "E:/QUT_SHARING_SPARING"
+# change when using RDSS
+# main_dir <- U:\ULVCSK5231\Analyses_2026
+
 years <- c(2000, 2005, 2010, 2015, 2020)
 target_res_m <- 2400
 
 cultivated_files <- list.files(
-  "E:/data_sharing_sparing/cultivated", 
+  file.path(main_dir, "cultivated"), 
   pattern = "\\.tif$", 
   full.names = TRUE
 )
 
 # Process years sequentially, tiles in parallel
 plan(multisession, workers = 8)
+
+terra::tmpFiles(current = TRUE, old=TRUE, orphan = FALSE, remove = TRUE)
 
 for(year in years){
   process_year(year)

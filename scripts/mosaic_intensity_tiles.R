@@ -17,28 +17,39 @@ world_mollweide$id <- 1
 ext_raster <- rast(ext(world_mollweide), resolution = 2400, crs = "ESRI:54009")
 r_mask <- rasterize(world_mollweide, ext_raster, field = "id")
 
+main_dir <- "E:/QUT_SHARING_SPARING"
+# change when using RDSS
+# main_dir <- U:\ULVCSK5231\Analyses_2026
+
 # MERGE TILES TOGETHER
-rlist <- list.files(
-  file.path("E:/data_sharing_sparing/land_use_change/agric_intensity/2000"),
-  pattern = "\\.tif$", full.names = TRUE, recursive = TRUE
-)
-agric_intensity <- mosaic(sprc(lapply(rlist, rast)), fun = "sum")
-agric_intensity <- clamp(agric_intensity, lower =0, upper=1 )
-names(agric_intensity) <- "agric_intensity"
+target_res_m = 2400
 
-# Project 
-agric_intensity_mollweide <- project(
-  agric_intensity, r_mask, method = "bilinear") %>%
-  mask(., r_mask)
-
-plot(agric_intensity_mollweide)
-
-writeRaster(
-  agric_intensity_mollweide,
-  "E:/data_sharing_sparing/land_use_change/agric_intensity/global_intensity_2000_2400m_mollweide.tif", 
-  overwrite = TRUE
+lapply(c(2000, 2005, 2010, 2015, 2020), function(year){
+  
+  rlist <- list.files(
+    file.path(main_dir, "land_use_change/agric_intensity", year),
+    pattern = "\\.tif$", full.names = TRUE, recursive = TRUE
   )
-
+  agric_intensity <- mosaic(sprc(lapply(rlist, rast)), fun = "sum")
+  agric_intensity <- clamp(agric_intensity, lower = 0, upper = 1 )
+  names(agric_intensity) <- paste0("agric_intensity_", year)
+  
+  # Project 
+  agric_intensity_mollweide <- project(
+    agric_intensity, r_mask, method = "bilinear") %>%
+    mask(., r_mask)
+  
+  plot(agric_intensity_mollweide, main = names(agric_intensity_mollweide))
+  
+  writeRaster(
+    agric_intensity_mollweide,
+    file.path(main_dir, 
+              "land_use_change/agric_intensity",
+              paste0("global_intensity_", year, "_", target_res_m, "_mollweide.tif")), 
+    overwrite = TRUE
+  )
+  return(agric_intensity_mollweide)
+})
 
 
 

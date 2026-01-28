@@ -1,13 +1,8 @@
 # Main function
 global_share_spare_pipeline <- function(year) {
-  # Read data
-  fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
-  gridID <- unique(fishnet_polygon$PageName)
-  
-  agric_intensity <- rast(grep(year, globalIntensityDataPath, value = TRUE))
-  
+
   # Initialize empty results list
-  results_list <- future_lapply(seq_along(gridID), function(i){
+  results_list <- lapply(seq_along(gridID), function(i){
     
     id <- gridID[i]
     
@@ -17,10 +12,12 @@ global_share_spare_pipeline <- function(year) {
                   Sys.time(), i, length(gridID), (i/length(gridID))*100, id))
     }
     
-    focalGrid <- subset(fishnet_polygon, PageName == id)
+    planning_units <- st_read(globalFishnetPath, quiet = TRUE)
+    focalGrid <- subset(planning_units, PageName == id)
     focalGridBuffered <- st_buffer(focalGrid, grid_size)
     
     # Extract values
+    agric_intensity <- rast(grep(year, globalIntensityDataPath, value = TRUE))
     intensity_per_grid <- crop(agric_intensity, focalGridBuffered)
     grid_values <- values(intensity_per_grid)
     grid_values <- grid_values[!is.na(grid_values)]
@@ -87,9 +84,7 @@ global_share_spare_pipeline <- function(year) {
         stringsAsFactors = FALSE
       )
     }
-  }, future.seed = TRUE, 
-  future.scheduling = 1, 
-  future.packages = c("terra", "glue", "fitdistrplus", "sf"))
+  })
   
   # Combine all results
   cat(sprintf("  [%s] Combining results...\n", Sys.time()))
@@ -98,7 +93,8 @@ global_share_spare_pipeline <- function(year) {
   # Write results
   output_file <- file.path(main_dir, paste0("global_share_spare_", year, "_60km_results.csv"))
   write.csv(all_Results, output_file, row.names = FALSE)
-  return(list(results = all_Results))
+  
+  return(all_Results)
 }
 
 print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
@@ -106,31 +102,39 @@ print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
 library(terra)
 library(fitdistrplus)
 library(sf)
+library(future.apply)
+library(progressr)
 
-main_dir <- "E:/data_sharing_sparing"
+main_dir <- "E:/QUT_SHARING_SPARING"
 
 years <- c(2000, 2005, 2010, 2015, 2020)
 grid_size <- 2400
 
 globalFishnetPath <- file.path(main_dir, "fishnet/global_fishnet_60km.shp")
+fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
+gridID <- unique(fishnet_polygon$PageName)
+print(gridID)
+
+
 globalIntensityDataPath <- list.files(
   file.path(main_dir, "land_use_change/agric_intensity"),
   pattern = "\\.tif$", full.names = TRUE
   )
 
-# import helper functions
-source("D:/R/Jonathan/global_sharing_sparing/scripts/helper_functions.R")
-
 # RUN IT
 print(paste("Started at:", Sys.time()))
-
-# Process years sequentially, tiles in parallel
-plan(multisession, workers = 10)
+# import helper functions
+source("./scripts/helper_functions.R")
 
 for(year in years){
+  with_progress({
   global_share_spare_pipeline(year)
   gc()
+  })
 }
-
 print(paste("\n\nFinished at:", Sys.time()))
-plan(sequential)
+
+
+
+
+
