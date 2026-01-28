@@ -37,8 +37,3 @@ for(year in years){
 }
 
 print(paste("\n\nFinished at:", Sys.time()))
-
-
-
-
-

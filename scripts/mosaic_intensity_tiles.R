@@ -19,7 +19,7 @@ r_mask <- rasterize(world_mollweide, ext_raster, field = "id")
 
 main_dir <- "E:/QUT_SHARING_SPARING"
 # change when using RDSS
-# main_dir <- U:\ULVCSK5231\Analyses_2026
+# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
 # MERGE TILES TOGETHER
 target_res_m = 2400
