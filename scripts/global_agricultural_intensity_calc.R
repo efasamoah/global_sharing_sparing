@@ -24,7 +24,7 @@ years <- c(2000, 2005, 2010, 2015, 2020)
 target_res_m <- 2400
 
 cultivated_files <- list.files(
-  file.path(main_dir, "cultivated"), 
+  file.path(main_dir, "land_use_change/cultivated"), 
   pattern = "\\.tif$", 
   full.names = TRUE
 )
@@ -33,7 +33,7 @@ cultivated_files <- list.files(
 plan(multisession, workers = 8)
 
 # Clear the custom temp folder
-file.remove("E:/terra_tmp")
+file.remove(list.files("E:/terra_tmp", full.names = T))
 
 for(year in years){
   agriculture_intensity_process(year)
