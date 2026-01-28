@@ -44,8 +44,11 @@ alt_spectral <- colorRampPalette(c(
 show_gradient(alt_spectral, "8. Alternative Spectral")
 
 
+main_dir <- "E:/QUT_SHARING_SPARING"
+# change when using RDSS
+# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
-agric_intensity <- rast(list.files("E:/QUT_SHARING_SPARING/land_use_change/agric_intensity", pattern = "\\.tif$", full.names = TRUE))
+agric_intensity <- rast(list.files(file.path(main_dir, "land_use_change/agric_intensity"), pattern = "\\.tif$", full.names = TRUE))
 df <- as.data.frame(agric_intensity, xy = TRUE, na.rm = TRUE)
 head(df)
 
@@ -95,14 +98,15 @@ results <- lapply(c(2000, 2005, 2010, 2015), function(k){
 
 library(patchwork)
 
-combined_plot <- wrap_plots(results, ncol = 2, 
+combined_plot <- wrap_plots(results, 
+                            ncol = 2, 
                             widths = c(1, 1),
                             heights = rep(1, ceiling(length(results)/2))) +
   plot_layout(guides='collect') & theme(legend.position='bottom')
 
 # Save combined plot
 ggsave(plot = combined_plot,
-       filename = "E:/QUT_SHARING_SPARING/share_spare_results/figures/global_agric_intensity.png",
+       filename = file.path(main_dir, "share_spare_results/figures/global_agric_intensity.png"),
        dpi = 1200,
        width = 14,
        height = 8,

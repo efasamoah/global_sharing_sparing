@@ -171,7 +171,7 @@ get_beta_details <- function(x, n_boot = 500, seed = NULL) {
 global_share_spare_pipeline <- function(year) {
   
   # Initialize empty results list
-  results_list <- lapply(seq_along(gridID), function(i){
+  results_list <- future_lapply(seq_along(gridID), function(i){
     
     id <- gridID[i]
     
@@ -199,9 +199,9 @@ global_share_spare_pipeline <- function(year) {
       
       # Classify using Jonathan's function
       tryCatch({
-        classification <- classify_spare_share(grid_values, n_boot=500, seed=123)
+        classification <- classify_spare_share(grid_values, n_boot=100, seed=123)
         # Get details for histogram
-        beta_details <- get_beta_details(grid_values, n_boot=500, seed=123)
+        beta_details <- get_beta_details(grid_values, n_boot=100, seed=123)
         
         # Return single row data.frame
         data.frame(
@@ -253,7 +253,12 @@ global_share_spare_pipeline <- function(year) {
         stringsAsFactors = FALSE
       )
     }
-  })
+    # Clean up terra temp files inside the worker
+    terra::tmpFiles(current = TRUE, orphan = FALSE, remove = TRUE)
+    
+  }, future.seed = TRUE, 
+  future.scheduling = 1, 
+  future.packages = c("terra", "fitdistrplus", "sf"))
   
   # Combine all results
   cat(sprintf("  [%s] Combining results...\n", Sys.time()))
