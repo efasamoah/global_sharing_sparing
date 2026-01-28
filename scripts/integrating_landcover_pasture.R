@@ -138,11 +138,12 @@ cultivated_files <- list.files(
 # Process years sequentially, tiles in parallel
 plan(multisession, workers = 8)
 
-terra::tmpFiles(current = TRUE, old=TRUE, orphan = FALSE, remove = TRUE)
+# Clear the custom temp folder
+file.remove(list.files("E:/terra_tmp", full.names = TRUE))
 
 for(year in years){
   process_year(year)
-  terra::tmpFiles(remove = TRUE)
+  terra::tmpFiles(current = TRUE, remove = TRUE)
   gc()
 }
 plan(sequential)

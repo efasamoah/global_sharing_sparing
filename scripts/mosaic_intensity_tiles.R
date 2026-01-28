@@ -25,6 +25,13 @@ main_dir <- "E:/QUT_SHARING_SPARING"
 target_res_m = 2400
 
 lapply(c(2000, 2005, 2010, 2015, 2020), function(year){
+  out <- file.path(main_dir, 
+            "land_use_change/agric_intensity",
+            paste0("global_intensity_", year, "_", target_res_m, "_mollweide.tif"))
+  if (file.exists(out)){
+    message("Global agricuture intensity for ", year," - already processed!")
+    NULL
+  }
   
   rlist <- list.files(
     file.path(main_dir, "land_use_change/agric_intensity", year),
