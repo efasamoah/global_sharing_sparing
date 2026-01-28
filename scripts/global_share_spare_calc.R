@@ -1,4 +1,3 @@
-
 print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
 
 library(terra)
@@ -39,4 +38,3 @@ for(year in years){
 
 plan(sequential)
 print(paste("\n\nFinished at:", Sys.time()))
-
