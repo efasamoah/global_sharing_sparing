@@ -47,14 +47,9 @@ lapply(c(2000, 2005, 2010, 2015, 2020), function(year){
     mask(., r_mask)
   
   plot(agric_intensity_mollweide, main = names(agric_intensity_mollweide))
+  writeRaster(agric_intensity_mollweide, out, overwrite = TRUE)
   
-  writeRaster(
-    agric_intensity_mollweide,
-    file.path(main_dir, 
-              "land_use_change/agric_intensity",
-              paste0("global_intensity_", year, "_", target_res_m, "_mollweide.tif")), 
-    overwrite = TRUE
-  )
+  message("Mosaicking agric intensity complete for ", year, " !!!")
   return(agric_intensity_mollweide)
 })
 
