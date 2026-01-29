@@ -11,9 +11,9 @@ main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 globalFishnetPath <- file.path(main_dir, "fishnet/global_fishnet_60km.shp")
 fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
 gridID <- unique(fishnet_polygon$PageName)
-print(gridID)
+length(gridID)
 
-gridID <- sample(gridID, 10000)
+# gridID <- sample(gridID, 1000)
 
 globalIntensityDataPath <- list.files(
   file.path(main_dir, "land_use_change/agric_intensity"),
@@ -30,7 +30,7 @@ years <- c(2000, 2005, 2010, 2015, 2020)
 grid_size <- 2400
 
 # Process years sequentially, tiles in parallel
-plan(multisession, workers = ceiling(availableCores()/2))
+plan(multisession, workers = ceiling(availableCores()-2))
 
 for(year in years){
   global_share_spare_pipeline(year)
@@ -40,4 +40,3 @@ for(year in years){
 
 plan(sequential)
 print(paste("\n\nFinished at:", Sys.time()))
-
