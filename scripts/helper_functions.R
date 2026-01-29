@@ -211,7 +211,7 @@ global_share_spare_pipeline <- function(year) {
         
         # Classify using Jonathan's function
         tryCatch({
-          beta_details <- classify_spare_share(grid_values, n_boot=1000, seed=123)
+          beta_details <- classify_spare_share(grid_values, n_boot=500, seed=123)
           
           # Return single row data.frame
           data.frame(
