@@ -21,13 +21,11 @@ globalIntensityDataPath <- list.files(
   pattern = "\\.tif$", full.names = TRUE
   )
 
-
 # import helper functions
 source("./scripts/helper_functions.R")
 
 years <- c(2000, 2005, 2010, 2015, 2020)
 grid_size <- 2400
-
 
 # Make sure the output folder exist
 outfolder <- file.path(main_dir, "share_spare_results")
@@ -45,9 +43,10 @@ plan(multisession, workers = ceiling(availableCores()-2))
 for(year in years){
   
   output_file <- file.path(outfolder, paste0("global_share_spare_", year, "_60km_results.csv"))
-  if( file.exists(output_file) ){
-    message(paste0("global_share_spare_", year, "_60km_results.csv"), " already exist")
-    NULL
+  
+  if(file.exists(output_file)){
+    message(paste0("global_share_spare_", year, "_60km_results.csv already exists. Skipping."))
+    next
   }
   
   global_share_spare_pipeline(year, output_file)
