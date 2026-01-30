@@ -1,3 +1,4 @@
+
 print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
 
 library(terra)
@@ -20,8 +21,6 @@ globalIntensityDataPath <- list.files(
   pattern = "\\.tif$", full.names = TRUE
   )
 
-# RUN IT
-print(paste("Started at:", Sys.time()))
 
 # import helper functions
 source("./scripts/helper_functions.R")
@@ -29,8 +28,6 @@ source("./scripts/helper_functions.R")
 years <- c(2000, 2005, 2010, 2015, 2020)
 grid_size <- 2400
 
-# Process years sequentially, tiles in parallel
-plan(multisession, workers = ceiling(availableCores()-2))
 
 # Make sure the output folder exist
 outfolder <- file.path(main_dir, "share_spare_results")
@@ -38,9 +35,22 @@ if(!dir.exists(outfolder)){
   dir.create(outfolder, recursive = TRUE)
 }
 
+# Start 
+print(paste("Started at:", Sys.time()))
+
+# Process years sequentially, tiles in parallel
+plan(multisession, workers = ceiling(availableCores()-2))
+
 # Run
 for(year in years){
-  global_share_spare_pipeline(year, out = outfolder)
+  
+  output_file <- file.path(outfolder, paste0("global_share_spare_", year, "_60km_results.csv"))
+  if( file.exists(output_file) ){
+    message(paste0("global_share_spare_", year, "_60km_results.csv"), " already exist")
+    NULL
+  }
+  
+  global_share_spare_pipeline(year, output_file)
   terra::tmpFiles(current = TRUE, remove = TRUE)
   gc()
 }

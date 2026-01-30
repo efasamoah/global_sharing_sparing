@@ -149,14 +149,8 @@ classify_spare_share <- function(x, n_boot = 1000, conf_level = 0.95, seed = NUL
 
 
 # Main function
-global_share_spare_pipeline <- function(year, out = outfolder) {
-  
-  output_file <- file.path(out, paste0("global_share_spare_", year, "_60km_results.csv"))
-  if( file.exists(output_file) ){
-    message(paste0("global_share_spare_", year, "_60km_results.csv"), " already exist")
-    NULL
-  }
-  
+global_share_spare_pipeline <- function(year, output_file) {
+
   # Initialize empty results list
   results_list <- future_lapply(seq_along(gridID), function(i){
     
