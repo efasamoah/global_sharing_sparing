@@ -149,7 +149,13 @@ classify_spare_share <- function(x, n_boot = 1000, conf_level = 0.95, seed = NUL
 
 
 # Main function
-global_share_spare_pipeline <- function(year) {
+global_share_spare_pipeline <- function(year, out = outfolder) {
+  
+  output_file <- file.path(out, paste0("global_share_spare_", year, "_60km_results.csv"))
+  if( file.exists(output_file) ){
+    message(paste0("global_share_spare_", year, "_60km_results.csv"), " already exist")
+    NULL
+  }
   
   # Initialize empty results list
   results_list <- future_lapply(seq_along(gridID), function(i){
@@ -301,7 +307,6 @@ global_share_spare_pipeline <- function(year) {
   print(table(all_Results$classification))
   
   # Write results
-  output_file <- file.path(main_dir, paste0("global_share_spare_", year, "_60km_results.csv"))
   write.csv(all_Results, output_file, row.names = FALSE)
   cat(sprintf("  [%s] Results written to: %s\n", Sys.time(), output_file))
   

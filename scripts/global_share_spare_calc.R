@@ -32,8 +32,15 @@ grid_size <- 2400
 # Process years sequentially, tiles in parallel
 plan(multisession, workers = ceiling(availableCores()-2))
 
+# Make sure the output folder exist
+outfolder <- file.path(main_dir, "share_spare_results")
+if(!dir.exists(outfolder)){
+  dir.create(outfolder, recursive = TRUE)
+}
+
+# Run
 for(year in years){
-  global_share_spare_pipeline(year)
+  global_share_spare_pipeline(year, out = outfolder)
   terra::tmpFiles(current = TRUE, remove = TRUE)
   gc()
 }
