@@ -115,3 +115,74 @@ ggsave(plot = combined_plot,
 
 
 
+
+
+
+
+
+main_dir <- "E:/QUT_SHARING_SPARING"
+# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
+
+globalFishnetPath <- file.path(main_dir, "fishnet/global_fishnet_60km.shp")
+fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
+head(fishnet_polygon)
+
+years = c(2000, 2005, 2010, 2015, 2020)
+
+results <- lapply(years, function(year){
+  
+  data <- read.csv(file.path(main_dir, glue::glue("share_spare_results/global_share_spare_{year}_60km_results.csv")))
+  df <- summary(factor(data$classification))[c("neither", "sharing", "sparing")]
+  100 * df/sum(df)
+  
+  fishnet_polygon_results <- merge(fishnet_polygon, data, by.x = "PageName", by.y = "grid_id")
+  
+  # Dissolve fishnet by classification to remove internal borders
+  fishnet_dissolved <- fishnet_polygon_results %>%
+    filter(classification %in% c("sharing", "sparing", "neither")) %>%
+    group_by(classification) %>%
+    summarise(geometry = st_union(geometry))
+  
+  # Plot the dissolved version
+  xx <- ggplot() +
+    geom_sf(data = bbox_eckert_iv, fill = "aliceblue", color = "black", linewidth = 0.5) +
+    geom_sf(data = world_eckert_iv, fill = "gray90", color = NA) + 
+    geom_sf(data = fishnet_dissolved, aes(fill = factor(classification)), 
+            colour = NA, linewidth = 0) +
+    geom_sf(data = world_eckert_iv, fill = NA, color = "gray40", linewidth = 0.1) +
+    scale_fill_manual(
+      name = "", values = c("darkred", "dodgerblue4", "yellow")
+    ) + 
+    theme_void(base_size = 18) + 
+    coord_sf(expand = FALSE) + labs(title = year) + 
+    theme(
+      legend.position = "bottom",
+      legend.direction = "horizontal",
+      legend.justification = "center",
+      legend.title = element_text(hjust = 0.5, face = "bold", size = 18),
+      legend.text = element_text(size = 18),
+      legend.margin = margin(t = 12, b = 5, l = 0, r = 0),
+      plot.margin = margin(2, 2, 2, 2),
+      panel.grid = element_blank(),
+      panel.border = element_blank()
+    )
+  return(xx)
+})
+
+
+library(patchwork)
+
+combined_plot <- wrap_plots(results, 
+                            ncol = 2, 
+                            widths = c(1, 1),
+                            heights = rep(1, ceiling(length(results)/2))) +
+  plot_layout(guides='collect') & theme(legend.position='bottom')
+
+# Save combined plot
+ggsave(plot = combined_plot,
+       filename = file.path(main_dir, "share_spare_results/figures/global_share_spare.png"),
+       dpi = 300,
+       width = 14,
+       height = 8,
+       units = "in",
+       bg = "white")
