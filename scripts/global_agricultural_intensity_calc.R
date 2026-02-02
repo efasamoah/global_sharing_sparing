@@ -12,28 +12,31 @@ print("=== GLOBAL AGRICULTURE INTENSITY BY TILES ===")
 library(terra)
 library(glue)
 library(future.apply)
+library(future)
 
-main_dir <- "E:/QUT_SHARING_SPARING"
+# main_dir <- "E:/QUT_SHARING_SPARING"
 # change when using RDSS
-# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
+main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
 # import helper functions
 source("./scripts/helper_functions.R")
 
 years <- c(2000, 2005, 2010, 2015, 2020)
-target_res_m <- 2400
+target_res_m <- 1200
 
 cultivated_files <- list.files(
   file.path(main_dir, "land_use_change/cultivated"), 
   pattern = "\\.tif$", 
   full.names = TRUE
 )
+print(cultivated_files)
+
 
 # Process years sequentially, tiles in parallel
-plan(multisession, workers = 8)
+plan(multisession, workers = ceiling(availableCores()-2))
 
 # Clear the custom temp folder
-file.remove(list.files("E:/terra_tmp", full.names = T))
+file.remove(list.files(file.path(main_dir, "terra_tmp"), full.names = T))
 
 for(year in years){
   agriculture_intensity_process(year)

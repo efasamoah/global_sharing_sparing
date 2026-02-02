@@ -14,7 +14,7 @@ agriculture_intensity_process <- function(year){
     return(NULL)
   }
   
-  OutPutFolder <- file.path(main_dir, "land_use_change/agric_intensity", year)
+  OutPutFolder <- file.path(main_dir, "land_use_change/agric_intensity", target_res_m, year)
   if(!dir.exists(OutPutFolder)){
     dir.create(OutPutFolder, recursive = TRUE)
   }
@@ -23,7 +23,7 @@ agriculture_intensity_process <- function(year){
     
     tryCatch({
       # Set terra options
-      terraOptions(todisk = TRUE, tempdir = "E:/terra_tmp")
+      terraOptions(todisk = TRUE, tempdir = file.path(main_dir, "terra_tmp"))
       
       # Set path
       OutputFilePath <- file.path(
