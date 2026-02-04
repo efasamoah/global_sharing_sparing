@@ -123,11 +123,11 @@ ggsave(plot = combined_plot,
 main_dir <- "E:/QUT_SHARING_SPARING"
 # main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
-globalFishnetPath <- file.path(main_dir, "fishnet/global_fishnet_60km.shp")
+globalFishnetPath <- file.path(main_dir, "fishnet/global_fishnet_3600_sq_km.shp")
 fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
 head(fishnet_polygon)
 
-years = c(2000, 2005, 2010, 2015, 2020)
+years = c(2000, 2005)
 
 results <- lapply(years, function(year){
   

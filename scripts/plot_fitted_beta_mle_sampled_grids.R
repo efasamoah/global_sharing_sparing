@@ -5,30 +5,34 @@
 if (!require("fitdistrplus")) {
   install.packages("fitdistrplus")
 }
+
 library(fitdistrplus)
 library(terra)
 library(sf)
 library(patchwork)
+library(ggplot2)
 
 main_dir <- "E:/QUT_SHARING_SPARING"
-data <- read.csv(file.path(main_dir, glue::glue("share_spare_results/global_share_spare_2000_60km_results.csv")))
 
-classifications = c("neither", "sharing", "sparing")
+data <- read.csv(file.path(main_dir, glue::glue("share_spare_results/global_share_spare_2000_1200_60km_results.csv")))
+
+classifications = c("neither", "sharing", "sparing","insufficient_data")
 
 lapply(classifications, function(class){
   
   grid_id <- subset(data, classification == class)$grid_id
-  grid_id <- sample(grid_id, 5)
+  set.seed(123)
+  grid_id <- sample(grid_id, 6)
   
   out <- lapply(grid_id, function(id){
     
-    fishnet_polygon <- st_read(file.path(main_dir, "fishnet/global_fishnet_60km.shp"), quiet = TRUE)
+    fishnet_polygon <- st_read(file.path(main_dir, "fishnet/global_fishnet_3600_sq_km.shp"), quiet = TRUE)
     focalGrid <- subset(fishnet_polygon, PageName == id)
     focalGridBuffered <- st_buffer(focalGrid, 2400)
     
     # Extract values
     intensity_per_grid <- rast(
-      file.path(main_dir,"land_use_change/agric_intensity/global_intensity_2000_2400_mollweide.tif")
+      file.path(main_dir,"land_use_change/agric_intensity/2400/global_intensity_2000_2400_mollweide.tif")
     ) %>% crop(., focalGridBuffered)
     
     df <- values(intensity_per_grid)
@@ -83,7 +87,7 @@ lapply(classifications, function(class){
       ) +
       scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.1)) +
       # Add parameter annotation
-      annotate("label", x = 0.8, y = max(fitted_curve$density) * 0.9,
+      annotate("label", x = 0.8, y = max(fitted_curve$density) * 0.6,
                label = sprintf("Beta(α=%.3f, β=%.3f)", alpha, beta),
                size = 5, color = "red", fontface = "bold",
                fill = "white", label.padding = unit(0.5, "lines"))
@@ -107,3 +111,4 @@ lapply(classifications, function(class){
          bg = "white")
   print(combined_plot)
 })
+
