@@ -1,6 +1,6 @@
 
 # Function to process one year
-agriculture_intensity_process <- function(year){
+agriculture_intensity_process <- function(year, OutPutFolder){
   
   message(glue("Starting year {year}"))
   
@@ -14,11 +14,7 @@ agriculture_intensity_process <- function(year){
     return(NULL)
   }
   
-  OutPutFolder <- file.path(main_dir, "land_use_change/agric_intensity", target_res_m, year)
-  if(!dir.exists(OutPutFolder)){
-    dir.create(OutPutFolder, recursive = TRUE)
-  }
-  
+
   future_lapply(glclu_files, function(k){
     
     tryCatch({
@@ -75,17 +71,17 @@ agriculture_intensity_process <- function(year){
       message(glue("Aggregation factor: {agg_factor}"))
       
       # Aggregate using sum
-      output_2400m <- aggregate(output_tile, 
+      output_aggregate_sums <- aggregate(output_tile, 
                                 fact = agg_factor, 
                                 fun = "sum", 
                                 na.rm = TRUE)
       
       # Convert to proportion (0-1 range)
-      output_2400m_fnal <- output_2400m / (agg_factor^2)
-      names(output_2400m_fnal) <- "agric_intensity"
+      out_intensity_proportions <- output_aggregate_sums / (agg_factor^2)
+      names(out_intensity_proportions) <- "agric_intensity"
       
       # Write with compression
-      writeRaster(output_2400m_fnal, 
+      writeRaster(out_intensity_proportions, 
                   OutputFilePath, 
                   overwrite = TRUE,
                   gdal = c("COMPRESS=LZW", "TILED=YES"))
@@ -108,6 +104,8 @@ agriculture_intensity_process <- function(year){
   
   return(year)
 }
+
+
 
 # Jonathan's classify function
 classify_spare_share <- function(x, n_boot = 1000, conf_level = 0.95, seed = NULL) {
@@ -149,7 +147,7 @@ classify_spare_share <- function(x, n_boot = 1000, conf_level = 0.95, seed = NUL
 
 
 # Main function
-global_share_spare_pipeline <- function(year, output_file) {
+global_share_spare_pipeline <- function(year, output_file, IntensityPath) {
 
   # Initialize empty results list
   results_list <- future_lapply(seq_along(gridID), function(i){
@@ -170,7 +168,7 @@ global_share_spare_pipeline <- function(year, output_file) {
       focalGridBuffered <- st_buffer(focalGrid, grid_size)
       
       # Extract values
-      agric_intensity <- rast(grep(year, globalIntensityDataPath, value = TRUE))
+      agric_intensity <- rast(grep(year, IntensityPath, value = TRUE))
       
       # Ensure CRS match
       if(!same.crs(agric_intensity, focalGridBuffered)) {

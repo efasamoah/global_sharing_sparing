@@ -22,11 +22,11 @@ main_dir <- "E:/QUT_SHARING_SPARING"
 # main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
 # MERGE TILES TOGETHER
-target_res_m = 2400
+target_res_m = 1200
 
 lapply(c(2000, 2005, 2010, 2015, 2020), function(year){
   out <- file.path(main_dir, 
-            "land_use_change/agric_intensity",
+            "land_use_change/agric_intensity", target_res_m,
             paste0("global_intensity_", year, "_", target_res_m, "_mollweide.tif"))
   if (file.exists(out)){
     message("Global agricuture intensity for ", year," - already processed!")
@@ -34,7 +34,7 @@ lapply(c(2000, 2005, 2010, 2015, 2020), function(year){
   }
   
   rlist <- list.files(
-    file.path(main_dir, "land_use_change/agric_intensity", year),
+    file.path(main_dir, "land_use_change/agric_intensity", target_res_m, year),
     pattern = "\\.tif$", full.names = TRUE, recursive = TRUE
   )
   agric_intensity <- mosaic(sprc(lapply(rlist, rast)), fun = "sum")
