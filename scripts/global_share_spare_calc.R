@@ -20,7 +20,7 @@ length(gridID)
 # import helper functions
 source("./scripts/helper_functions.R")
 
-years <- c(2000, 2005, 2010, 2015, 2020)
+years <- c(2000, 2005, 2010, 2015)
 grid_size <- 1200
 
 globalIntensityDataPath <- list.files(
@@ -38,15 +38,18 @@ if(!dir.exists(outfolder)){
 print(paste("Started at:", Sys.time()))
 
 # Process years sequentially, tiles in parallel
-plan(multisession, workers = ceiling(availableCores()/2))
+plan(multisession, workers = ceiling(availableCores()-2))
 
 # Run
 for(year in years){
   
-  out <- file.path(outfolder, paste0("global_share_spare_", year, "_60km_results.csv"))
+  out <- file.path(
+    outfolder, 
+    paste0("global_share_spare_",year,"_",grid_size,"_60km_results.csv")
+    )
   
   if(file.exists(out)){
-    message(paste0("global_share_spare_", year, "_60km_results.csv already exists. Skipping."))
+    message(paste0(out," already exists. Skipping."))
     next
   }
   
