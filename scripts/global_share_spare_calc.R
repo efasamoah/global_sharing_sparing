@@ -1,5 +1,7 @@
+# === GLOBAL LAND SHARING AND SPARING INDICES ===
 
-print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
+# Dr. Ernest Frimpong Asamoah
+# Last updated 5 February 2026
 
 library(terra)
 library(fitdistrplus)
@@ -16,11 +18,10 @@ length(gridID)
 
 # gridID <- sample(gridID, 1000)
 
-
 # import helper functions
 source("./scripts/helper_functions.R")
 
-years <- c(2000, 2005, 2010, 2015)
+# Focal Grid Size
 grid_size <- 1200
 
 globalIntensityDataPath <- list.files(
@@ -34,13 +35,17 @@ if(!dir.exists(outfolder)){
   dir.create(outfolder, recursive = TRUE)
 }
 
-# Start 
-print(paste("Started at:", Sys.time()))
 
 # Process years sequentially, tiles in parallel
 plan(multisession, workers = ceiling(availableCores()-2))
 
 # Run
+years <- c(2000, 2005, 2010, 2015, 2020)
+
+print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
+print(paste("Started at:", Sys.time()))
+strttime <- Sys.time()
+
 for(year in years){
   
   out <- file.path(
@@ -64,4 +69,4 @@ for(year in years){
 }
 
 plan(sequential)
-print(paste("\n\nFinished at:", Sys.time()))
+print(paste("\n\nFinished at:", strttime - Sys.time()))
