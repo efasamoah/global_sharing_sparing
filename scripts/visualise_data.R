@@ -5,7 +5,7 @@ library(sf)
 library(magick)
 
 # Get world data
-world <- ne_countries(scale = "medium", returnclass = "sf")
+world <- ne_countries(scale = 50, returnclass = "sf")
 world <- filter(world, !continent %in% c("Oceania Seven seas (open ocean)", "Antarctica"))
 
 # Transform world data to Robinson projection
@@ -48,12 +48,13 @@ main_dir <- "E:/QUT_SHARING_SPARING"
 # change when using RDSS
 # main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
-agric_intensity <- rast(list.files(file.path(main_dir, "land_use_change/agric_intensity"), pattern = "\\.tif$", full.names = TRUE))
+grid_size = 2400
+agric_intensity <- rast(list.files(glue::glue("{main_dir}/land_use_change/agric_intensity/{grid_size}"), pattern = "\\.tif$", full.names = TRUE))
 df <- as.data.frame(agric_intensity, xy = TRUE, na.rm = TRUE)
 head(df)
 
 
-results <- lapply(c(2000, 2005, 2010, 2015), function(k){
+results <- lapply(c(2000, 2005, 2010, 2015, 2020), function(k){
   col_name <- paste0("agric_intensity_", k)
   data <- cbind.data.frame(df[,c("x","y")], df[, col_name])
   colnames(data) <- c("x","y","indicator")
@@ -106,15 +107,15 @@ combined_plot <- wrap_plots(results,
 
 # Save combined plot
 ggsave(plot = combined_plot,
-       filename = file.path(main_dir, "share_spare_results/figures/global_agric_intensity.png"),
-       dpi = 1200,
+       filename = glue::glue(
+         "{main_dir}/share_spare_results/figures/global_agric_intensity_{grid_size}m.png"
+       ),
+       dpi = 300,
        width = 14,
-       height = 8,
+       height = 14,
        units = "in",
-       bg = "white")
-
-
-
+       bg = "white"
+)
 
 
 
@@ -123,15 +124,27 @@ ggsave(plot = combined_plot,
 main_dir <- "E:/QUT_SHARING_SPARING"
 # main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
-globalFishnetPath <- file.path(main_dir, "fishnet/global_fishnet_3600_sq_km.shp")
-fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
+testSite <- "global"
+# takes "australia" or "global" only
+
+fishnet_polygon <- st_read(
+  file.path(main_dir, "fishnet", paste0(testSite, "_fishnet_60x60km.shp")), 
+  quiet = TRUE
+)
 head(fishnet_polygon)
 
-years = c(2000, 2005)
+years = c(2000, 2005, 2010, 2015)
+grid_size = 1200
 
 results <- lapply(years, function(year){
   
-  data <- read.csv(file.path(main_dir, glue::glue("share_spare_results/global_share_spare_{year}_60km_results.csv")))
+  data <- read.csv(
+    file.path(
+      main_dir, 
+      glue::glue("share_spare_results/{testSite}/{testSite}_share_spare_{year}_{grid_size}_60km_results.csv")
+    )
+  )
+  
   df <- summary(factor(data$classification))[c("neither", "sharing", "sparing")]
   100 * df/sum(df)
   
@@ -143,18 +156,29 @@ results <- lapply(years, function(year){
     group_by(classification) %>%
     summarise(geometry = st_union(geometry))
   
+  if(testSite == "global"){
+    admin_bound <- world_eckert_iv
+  } else {
+    admin_bound <- subset(world_eckert_iv, admin %in% stringr::str_to_sentence(testSite))
+  }
+  
+  plotData_sf <- st_intersection(fishnet_dissolved, admin_bound)
+  
   # Plot the dissolved version
   xx <- ggplot() +
-    geom_sf(data = bbox_eckert_iv, fill = "aliceblue", color = "black", linewidth = 0.5) +
-    geom_sf(data = world_eckert_iv, fill = "gray90", color = NA) + 
-    geom_sf(data = fishnet_dissolved, aes(fill = factor(classification)), 
+    # geom_sf(data = bbox_eckert_iv, fill = "aliceblue", color = "black", linewidth = 0.5) +
+    geom_sf(data = admin_bound, fill = "gray90", color = NA) + 
+    geom_sf(data = plotData_sf, aes(fill = factor(classification)), 
             colour = NA, linewidth = 0) +
-    geom_sf(data = world_eckert_iv, fill = NA, color = "gray40", linewidth = 0.1) +
-    scale_fill_manual(
-      name = "", values = c("darkred", "dodgerblue4", "yellow")
-    ) + 
+    geom_sf(data = admin_bound, fill = NA, color = "gray40", linewidth = 0.1) +
+    scale_fill_manual(name = "", 
+                      values = c("neither" = "darkred", 
+                                 "sharing" = "dodgerblue4",
+                                 "sparing" = "yellow"
+                                 )
+                      ) + 
     theme_void(base_size = 18) + 
-    coord_sf(expand = FALSE) + labs(title = year) + 
+    coord_sf(expand = FALSE, crs = sf::st_crs(4326)) + labs(title = year) + 
     theme(
       legend.position = "bottom",
       legend.direction = "horizontal",
@@ -180,9 +204,37 @@ combined_plot <- wrap_plots(results,
 
 # Save combined plot
 ggsave(plot = combined_plot,
-       filename = file.path(main_dir, "share_spare_results/figures/global_share_spare.png"),
+       filename = glue::glue(
+         "{main_dir}/share_spare_results/figures/{testSite}_share_spare_{grid_size}.png"
+       ),
        dpi = 300,
        width = 14,
        height = 8,
        units = "in",
-       bg = "white")
+       bg = "white"
+       )
+
+
+# summaries 
+
+years = c(2000, 2005, 2010, 2015, 2020)
+grid_size = 2400
+
+xx <- lapply(years, function(year){
+  
+  data <- read.csv(
+    glue::glue(
+      "{main_dir}/share_spare_results/{testSite}/{testSite}_share_spare_{year}_{grid_size}_60km_results.csv"
+    ))
+  # df <- summary(factor(data$classification))[c("neither", "sharing", "sparing")]
+  df <- summary(factor(data$classification))
+  xx <- 100 * df/sum(df)
+  
+  return(xx)
+})
+
+names(xx) <- years
+print(xx)
+
+
+

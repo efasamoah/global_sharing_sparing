@@ -14,7 +14,6 @@ agriculture_intensity_process <- function(year, OutPutFolder){
     return(NULL)
   }
   
-
   future_lapply(glclu_files, function(k){
     
     tryCatch({
@@ -286,7 +285,7 @@ global_share_spare_pipeline <- function(year, output_file, IntensityPath) {
     
   }, future.seed = TRUE, 
   future.scheduling = 1, 
-  future.packages = c("terra", "fitdistrplus", "sf"))
+  future.packages = c("terra", "fitdistrplus", "sf", "glue"))
   
   # Combine all results
   cat(sprintf("  [%s] Combining results...\n", Sys.time()))
