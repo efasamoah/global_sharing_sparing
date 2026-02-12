@@ -21,8 +21,8 @@ main_dir <- "E:/QUT_SHARING_SPARING"
 # import helper functions
 source("./scripts/helper_functions.R")
 
-years <- c(2000, 2005, 2010, 2015, 2020)
-target_res_m <- 1200
+years <- c(2020)
+planning_units <- c(1200, 2400)
 
 cultivated_files <- list.files(
   file.path(main_dir, "land_use_change/cultivated"), 
@@ -38,18 +38,20 @@ plan(multisession, workers = ceiling(availableCores()/2))
 # Clear the custom temp folder
 file.remove(list.files(file.path(main_dir, "terra_tmp"), full.names = T))
 
-for(year in years){
+lapply(planning_units, function(target_res_m) {
   
-  OutPutFolder <- file.path(main_dir, "land_use_change/agric_intensity", target_res_m, year)
-  if(!dir.exists(OutPutFolder)){
-    dir.create(OutPutFolder, recursive = TRUE)
+  for(year in years){
+    
+    OutPutFolder <- file.path(main_dir, "land_use_change/agric_intensity", target_res_m, year)
+    if(!dir.exists(OutPutFolder)){
+      dir.create(OutPutFolder, recursive = TRUE)
+    }
+    #  Run main function
+    agriculture_intensity_process(year, OutPutFolder, cell_size = target_res_m)
+    terra::tmpFiles(current = TRUE, remove = TRUE)
+    gc()
   }
-  #  Run main function
-  agriculture_intensity_process(year, OutPutFolder)
-  terra::tmpFiles(current = TRUE, remove = TRUE)
-  gc()
-}
+})
+
 plan(sequential)
-
-
 

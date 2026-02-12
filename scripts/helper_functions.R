@@ -1,6 +1,6 @@
 
 # Function to process one year
-agriculture_intensity_process <- function(year, OutPutFolder){
+agriculture_intensity_process <- function(year, OutPutFolder, cell_size){
   
   message(glue("Starting year {year}"))
   
@@ -23,7 +23,7 @@ agriculture_intensity_process <- function(year, OutPutFolder){
       # Set path
       OutputFilePath <- file.path(
         OutPutFolder, 
-        paste0(tools::file_path_sans_ext(basename(k)), "_", target_res_m, "m.tif")
+        paste0(tools::file_path_sans_ext(basename(k)), "_", cell_size, "m.tif")
       )
       # Skip if already exists
       if(file.exists(OutputFilePath)){
@@ -33,7 +33,7 @@ agriculture_intensity_process <- function(year, OutPutFolder){
       
       message(glue("Processing {basename(k)}..."))
       # Read cultivated grassland raster
-      cultivated_grassland_file <- grep(paste0("p_30m_", year), cultivated_files, value = TRUE)
+      cultivated_grassland_file <- grep(paste0("c_30m_", year), cultivated_files, value = TRUE)
       if(length(cultivated_grassland_file) == 0){
         stop(glue("No cultivated grassland file found for year {year}"))
       }
@@ -48,10 +48,11 @@ agriculture_intensity_process <- function(year, OutPutFolder){
       
       # Crop to extent of lulcc
       cult_grass <- crop(cultivated_grassland, lulcc, snap = "out")
-      cult_grass <- cult_grass / 100
+      # cult_grass <- cult_grass / 100
+      cult_grass_binned <- ifel(cult_grass %in% 2, 1, 0)
       
       # Align raster - use resample instead of project if same CRS
-      cultivated_resampled <- resample(cult_grass, glclu_tile, method = "near")
+      cultivated_resampled <- resample(cult_grass_binned, glclu_tile, method = "near")
       
       # Merge: where glclu_tile is 0 and cultivated has data, use cultivated value
       output_tile <- ifel(glclu_tile == 0 & !is.na(cultivated_resampled), 
@@ -62,21 +63,20 @@ agriculture_intensity_process <- function(year, OutPutFolder){
       original_res <- res(glclu_tile)[1]  # Get current resolution in degrees
       
       # Convert 2400m to degrees (approximate at equator: 1 degree ≈ 111,320 m)
-      target_res_deg <- target_res_m / 111320
+      target_res_deg <- cell_size / 111320
       
       # Calculate aggregation factor
       agg_factor <- round(target_res_deg / original_res)
       
       message(glue("Aggregation factor: {agg_factor}"))
       
-      # Aggregate using sum
-      output_aggregate_sums <- aggregate(output_tile, 
-                                fact = agg_factor, 
-                                fun = "sum", 
-                                na.rm = TRUE)
-      
+      # Aggregate
       # Convert to proportion (0-1 range)
-      out_intensity_proportions <- output_aggregate_sums / (agg_factor^2)
+      out_intensity_proportions <- aggregate(output_tile, 
+                                fact = agg_factor, 
+                                fun = "mean", 
+                                na.rm = TRUE)
+  
       names(out_intensity_proportions) <- "agric_intensity"
       
       # Write with compression

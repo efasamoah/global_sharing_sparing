@@ -41,7 +41,7 @@ alt_spectral <- colorRampPalette(c(
   "#08519C",  # Blue
   "#08306B"   # Dark blue
 ))(100)
-show_gradient(alt_spectral, "8. Alternative Spectral")
+# show_gradient(alt_spectral, "8. Alternative Spectral")
 
 
 main_dir <- "E:/QUT_SHARING_SPARING"
@@ -126,22 +126,24 @@ main_dir <- "E:/QUT_SHARING_SPARING"
 
 testSite <- "global"
 # takes "australia" or "global" only
+pu_size = 60
 
 fishnet_polygon <- st_read(
-  file.path(main_dir, "fishnet", paste0(testSite, "_fishnet_60x60km.shp")), 
+  glue::glue("{main_dir}/fishnet/{testSite}_{pu_size}km_fishnet.shp"), 
   quiet = TRUE
 )
+
 head(fishnet_polygon)
 
 years = c(2000, 2005, 2010, 2015)
-grid_size = 1200
+grid_size = 2400
 
 results <- lapply(years, function(year){
   
   data <- read.csv(
     file.path(
       main_dir, 
-      glue::glue("share_spare_results/{testSite}/{testSite}_share_spare_{year}_{grid_size}_60km_results.csv")
+      glue::glue("share_spare_results/{testSite}/{testSite}_share_spare_{year}_{grid_size}_{pu_size}km_results.csv")
     )
   )
   
@@ -165,7 +167,7 @@ results <- lapply(years, function(year){
   plotData_sf <- st_intersection(fishnet_dissolved, admin_bound)
   
   # Plot the dissolved version
-  xx <- ggplot() +
+  p <- ggplot() +
     # geom_sf(data = bbox_eckert_iv, fill = "aliceblue", color = "black", linewidth = 0.5) +
     geom_sf(data = admin_bound, fill = "gray90", color = NA) + 
     geom_sf(data = plotData_sf, aes(fill = factor(classification)), 
@@ -178,7 +180,8 @@ results <- lapply(years, function(year){
                                  )
                       ) + 
     theme_void(base_size = 18) + 
-    coord_sf(expand = FALSE, crs = sf::st_crs(4326)) + labs(title = year) + 
+    coord_sf(expand = FALSE, crs = sf::st_crs(4326)) + 
+    labs(title = year) + 
     theme(
       legend.position = "bottom",
       legend.direction = "horizontal",
@@ -190,7 +193,7 @@ results <- lapply(years, function(year){
       panel.grid = element_blank(),
       panel.border = element_blank()
     )
-  return(xx)
+  return(p)
 })
 
 
@@ -205,7 +208,7 @@ combined_plot <- wrap_plots(results,
 # Save combined plot
 ggsave(plot = combined_plot,
        filename = glue::glue(
-         "{main_dir}/share_spare_results/figures/{testSite}_share_spare_{grid_size}.png"
+         "{main_dir}/share_spare_results/figures/{testSite}_share_spare_{grid_size}_{pu_size}km.png"
        ),
        dpi = 300,
        width = 14,
@@ -215,8 +218,7 @@ ggsave(plot = combined_plot,
        )
 
 
-# summaries 
-
+# Summaries 
 years = c(2000, 2005, 2010, 2015, 2020)
 grid_size = 2400
 
@@ -237,4 +239,124 @@ names(xx) <- years
 print(xx)
 
 
+
+
+
+
+
+library(patchwork)
+
+main_dir <- "E:/QUT_SHARING_SPARING"
+# change when using RDSS
+# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
+testSite <- "australia"
+pu_sizes <- c(30, 60)
+
+lapply(pu_sizes, function(pu_size) {
+  
+  spare_share_results <- list.files(
+    glue::glue("{main_dir}/share_spare_results/{testSite}"), 
+    pattern = "\\.csv$", full.names = TRUE
+  )
+  spare_share_results <- grep(pu_size, spare_share_results, value = TRUE)
+  
+  fishnet_polygon <- st_read(
+    glue::glue("{main_dir}/fishnet/{testSite}_{pu_size}km_fishnet.shp"), 
+    quiet = TRUE
+  )
+  
+  indicators <- c("beta", "alpha")
+  indicator_plots <- list()
+  
+  for (indicator in indicators) {
+    
+    # FIRST: Read all data to find global min/max for this indicator
+    all_data <- lapply(spare_share_results, function(k) {
+      data <- read.csv(k)
+      data[, indicator]
+    }) %>% unlist()
+    
+    global_min <- min(all_data, na.rm = TRUE)
+    global_max <- max(all_data, na.rm = TRUE)
+    
+    # NOW: Create plots with consistent scale
+    results <- lapply(spare_share_results, function(k) {
+      data <- read.csv(k)
+      data <- data[, c("grid_id", indicator)] %>% na.omit()
+      colnames(data) <- c("PageName", "indicator")
+      
+      # merge
+      fishnet_polygon_results <- merge(fishnet_polygon, data, by = "PageName")
+      
+      if (testSite == "global") {
+        admin_bound <- world_eckert_iv
+      } else {
+        admin_bound <- subset(world_eckert_iv, admin %in% stringr::str_to_sentence(testSite))
+      }
+      
+      plotData_sf <- st_intersection(fishnet_polygon_results, admin_bound)
+      
+      # Plot with FIXED scale limits
+      p <- ggplot() +
+        geom_sf(data = admin_bound, fill = "gray90", color = NA) + 
+        geom_sf(data = plotData_sf, aes(fill = indicator), colour = NA, linewidth = 0) +
+        geom_sf(data = admin_bound, fill = NA, color = "gray40", linewidth = 0.1) +
+        scale_fill_gradientn(
+          name = indicator,
+          colors = alt_spectral,
+          limits = c(global_min, global_max),
+          na.value = "transparent",
+          guide = guide_colorbar(
+            title.position = "top",
+            title.hjust = 0.5,
+            barwidth = unit(20, "lines"),
+            barheight = unit(1, "lines"),
+            frame.colour = "black",
+            frame.linewidth = 0.3,
+            ticks.colour = "black",
+            ticks.linewidth = 0.5
+          )) + 
+        theme_void(base_size = 18) + 
+        coord_sf(expand = FALSE, crs = sf::st_crs(4326)) + 
+        labs(title = tools::file_path_sans_ext(basename(k))) + 
+        theme(
+          legend.position = "bottom",
+          legend.direction = "horizontal",
+          legend.justification = "center",
+          legend.title = element_text(hjust = 0.5, face = "bold", size = 18),
+          legend.text = element_text(size = 18),
+          legend.margin = margin(t = 12, b = 5, l = 0, r = 0),
+          plot.margin = margin(2, 2, 2, 2),
+          panel.grid = element_blank(),
+          panel.border = element_blank()
+        )
+      return(p)
+    })
+    
+    combined_plot <- wrap_plots(results, 
+                                ncol = 2, 
+                                widths = c(1, 1),
+                                heights = rep(1, ceiling(length(results)/2))) +
+      plot_layout(guides = 'collect') & theme(legend.position = 'bottom')
+    
+    print(combined_plot)
+    
+    # Save combined plot
+    ggsave(
+      plot = combined_plot,
+      filename = glue::glue(
+        "{main_dir}/share_spare_results/figures/{testSite}_share_spare_{indicator}_{pu_size}km.png"
+      ),
+      dpi = 300,
+      width = 14,
+      height = 8,
+      units = "in",
+      bg = "white"
+    )
+    
+    indicator_plots[[indicator]] <- combined_plot
+  }
+  
+  return(indicator_plots)
+})
 
