@@ -14,11 +14,13 @@ virtualMachine = FALSE
 
 if (virtualMachine) {
   main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
-  n_workers <- ceiling(availableCores()-2)
+  n_workers <- ceiling(availableCores()-2) 
+  # the VM has only 16 cores. use 14
   
 } else {
   main_dir <- "E:/QUT_SHARING_SPARING"
-  n_workers <- ceiling(availableCores()/2)
+  n_workers <- ceiling(availableCores()/2) 
+  # Personal laptop has 32 cores but RAM can support only half
 }
 
 testSite <- "global"
@@ -59,9 +61,11 @@ for (id in 1:nrow(planning_grids)){
   gridID <- unique(fishnet_polygon$PageName)
   
   globalIntensityDataPath <- list.files(
-    file.path(main_dir, "land_use_change/agric_intensity", grid_size),
+    file.path(main_dir, "land_use_change/agric_intensity", testSite),
     pattern = "\\.tif$", full.names = TRUE
   )
+  # filter only focal grid size
+  globalIntensityDataPath <- grep(grid_size, globalIntensityDataPath, value = TRUE)
   
   for(year in years){
     

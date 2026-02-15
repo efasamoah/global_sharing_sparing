@@ -19,11 +19,13 @@ virtualMachine = FALSE
 
 if (virtualMachine) {
   main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
-  n_workers <- ceiling(availableCores()-2)
+  n_workers <- ceiling(availableCores()-2) 
+  # the VM has only 16 cores. use 14
   
 } else {
   main_dir <- "E:/QUT_SHARING_SPARING"
-  n_workers <- ceiling(availableCores()/2)
+  n_workers <- ceiling(availableCores()/2) 
+  # Personal laptop has 32 cores but RAM can support only half
 }
 
 # import helper functions
