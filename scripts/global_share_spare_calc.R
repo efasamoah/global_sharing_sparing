@@ -1,21 +1,32 @@
 # === GLOBAL LAND SHARING AND SPARING INDICES ===
 
 # Dr. Ernest Frimpong Asamoah
-# Last updated 5 February 2026
+# Last updated 14 February 2026
+
+rm(list = ls())
 
 library(terra)
 library(fitdistrplus)
 library(sf)
 library(future.apply)
 
-main_dir <- "E:/QUT_SHARING_SPARING"
-# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
-testSite <- "australia"
+virtualMachine = FALSE
+
+if (virtualMachine) {
+  main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
+  n_workers <- ceiling(availableCores()-2)
+  
+} else {
+  main_dir <- "E:/QUT_SHARING_SPARING"
+  n_workers <- ceiling(availableCores()/2)
+}
+
+testSite <- "global"
 
 # Focal Grid Sizes
 planning_grids <- expand.grid(
   x = c(1200, 2400), # grid size (600m, 1200m, or 2400m)
-  y = c(30, 60) # planning grids (30km or 60km)
+  y = c(60) # planning grids (30km or 60km)
 )
 
 # import helper functions
@@ -28,8 +39,8 @@ if(!dir.exists(outfolder)){
 }
 
 # Process years sequentially, tiles in parallel
-plan(multisession, workers = ceiling(availableCores()/2))
-years <- c(2000)
+plan(multisession, workers = n_workers)
+years <- c(2000, 2020)
 
 print("=== GLOBAL LAND SHARING AND SPARING INDICES ===")
 print(paste("Started at:", Sys.time()))
@@ -40,11 +51,11 @@ for (id in 1:nrow(planning_grids)){
   planning_unit_size <- planning_grids[id,]$y
   grid_size <- planning_grids[id,]$x
   
-  globalFishnetPath <- file.path(
+  FishnetPath <- file.path(
     main_dir, "fishnet", 
     glue::glue("{testSite}_{planning_unit_size}km_fishnet.shp")
-    )
-  fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
+  )
+  fishnet_polygon <- st_read(FishnetPath, quiet = TRUE)
   gridID <- unique(fishnet_polygon$PageName)
   
   globalIntensityDataPath <- list.files(
@@ -67,7 +78,8 @@ for (id in 1:nrow(planning_grids)){
     global_share_spare_pipeline(
       year = year, 
       output_file = out, 
-      IntensityPath = globalIntensityDataPath
+      IntensityPath = globalIntensityDataPath,
+      globalFishnetPath = FishnetPath
     )
     # Clear the temp file
     terra::tmpFiles(current = TRUE, remove = TRUE)
