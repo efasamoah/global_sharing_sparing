@@ -129,14 +129,12 @@ classify_spare_share <- function(x, n_boot = 1000, conf_level = 0.95, seed = NUL
 
 # Main function
 global_share_spare_pipeline <- function(year,
-                                        id_var = "PageName",
                                         output_file, 
                                         IntensityPath, 
-                                        FishnetPath) {
+                                        globalFishnetPath) {
   
-  
-  fishnet_polygon <- st_read(FishnetPath, quiet = TRUE)
-  gridID <- unique(fishnet_polygon[, id_var])
+  fishnet_polygon <- st_read(globalFishnetPath, quiet = TRUE)
+  gridID <- unique(fishnet_polygon$PageName)
   
   # Initialize empty results list
   results_list <- future_lapply(seq_along(gridID), function(i){
@@ -152,7 +150,7 @@ global_share_spare_pipeline <- function(year,
     # *** WRAP ENTIRE GRID PROCESSING IN tryCatch ***
     result <- tryCatch({
       
-      planning_units <- st_read(FishnetPath, quiet = TRUE)
+      planning_units <- st_read(globalFishnetPath, quiet = TRUE)
       focalGrid <- subset(planning_units, PageName == id)
       focalGridBuffered <- st_buffer(focalGrid, grid_size)
       
@@ -194,8 +192,7 @@ global_share_spare_pipeline <- function(year,
       mean_int <- if(n_valid > 0) mean(grid_values) else NA
       
       # NOW filter at grid level: mean >10% AND enough data
-      # (n_valid > 20 && !is.na(mean_int) && mean_int > 0.1) # n_valid threshold has been removed after discussions with Jonathan
-      if(!is.na(mean_int) && mean_int > 0.1) {
+      if(n_valid > 20 && !is.na(mean_int) && mean_int > 0.1){
         
         # Classify using Jonathan's function
         tryCatch({

@@ -3,6 +3,23 @@ library(tidyverse)
 library(rnaturalearth)
 library(sf)
 library(magick)
+library(glue)
+library(patchwork)
+
+
+virtualMachine = FALSE
+
+if (virtualMachine) {
+  main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
+  n_workers <- ceiling(availableCores()-2) 
+  # the VM has only 16 cores. use 14
+  
+} else {
+  main_dir <- "E:/QUT_SHARING_SPARING"
+  n_workers <- ceiling(availableCores()/2) 
+  # Personal laptop has 32 cores but RAM can support only half
+}
+
 
 # Get world data
 world <- ne_countries(scale = 50, returnclass = "sf")
@@ -44,18 +61,16 @@ alt_spectral <- colorRampPalette(c(
 # show_gradient(alt_spectral, "8. Alternative Spectral")
 
 
-main_dir <- "E:/QUT_SHARING_SPARING"
-# change when using RDSS
-# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
 
 grid_size = 2400
-agric_intensity <- rast(list.files(glue::glue("{main_dir}/land_use_change/agric_intensity/{grid_size}"), pattern = "\\.tif$", full.names = TRUE))
+agric_intensity <- list.files(glue::glue("{main_dir}/land_use_change/agric_intensity/global"), pattern = "\\.tif$", full.names = TRUE)
+agric_intensity <- rast(grep(grid_size, agric_intensity, value = TRUE))
 df <- as.data.frame(agric_intensity, xy = TRUE, na.rm = TRUE)
 head(df)
 
 
-results <- lapply(c(2000, 2005, 2010, 2015, 2020), function(k){
-  col_name <- paste0("agric_intensity_", k)
+results <- lapply(c(2000, 2020), function(k){
+  col_name <- paste0("agric_intensity_", k, "_", grid_size)
   data <- cbind.data.frame(df[,c("x","y")], df[, col_name])
   colnames(data) <- c("x","y","indicator")
   
@@ -97,8 +112,6 @@ results <- lapply(c(2000, 2005, 2010, 2015, 2020), function(k){
 })
 
 
-library(patchwork)
-
 combined_plot <- wrap_plots(results, 
                             ncol = 2, 
                             widths = c(1, 1),
@@ -121,12 +134,9 @@ ggsave(plot = combined_plot,
 
 
 
-main_dir <- "E:/QUT_SHARING_SPARING"
-# main_dir <- "U:/Research/Projects/ULVCSK5231/Analyses_2026"
-
 testSite <- "global"
 # takes "australia" or "global" only
-pu_size = 60
+
 
 fishnet_polygon <- st_read(
   glue::glue("{main_dir}/fishnet/{testSite}_{pu_size}km_fishnet.shp"), 
@@ -135,8 +145,9 @@ fishnet_polygon <- st_read(
 
 head(fishnet_polygon)
 
-years = c(2000, 2005, 2010, 2015)
+years = c(2000,2020)
 grid_size = 2400
+pu_size = 60
 
 results <- lapply(years, function(year){
   
@@ -180,7 +191,8 @@ results <- lapply(years, function(year){
                                  )
                       ) + 
     theme_void(base_size = 18) + 
-    coord_sf(expand = FALSE, crs = sf::st_crs(4326)) + 
+    # coord_sf(expand = FALSE, crs = sf::st_crs(4326)) + 
+    coord_sf(expand = FALSE) +
     labs(title = year) + 
     theme(
       legend.position = "bottom",
@@ -200,9 +212,9 @@ results <- lapply(years, function(year){
 library(patchwork)
 
 combined_plot <- wrap_plots(results, 
-                            ncol = 2, 
-                            widths = c(1, 1),
-                            heights = rep(1, ceiling(length(results)/2))) +
+                            ncol = 1, 
+                            widths = rep(1, ceiling(length(results)/2)),
+                            heights = c(1, 1)) +
   plot_layout(guides='collect') & theme(legend.position='bottom')
 
 # Save combined plot
@@ -211,15 +223,17 @@ ggsave(plot = combined_plot,
          "{main_dir}/share_spare_results/figures/{testSite}_share_spare_{grid_size}_{pu_size}km.png"
        ),
        dpi = 300,
-       width = 14,
+       width = 8,
        height = 8,
        units = "in",
        bg = "white"
        )
 
 
+
+
 # Summaries 
-years = c(2000, 2005, 2010, 2015, 2020)
+years = c(2000,2020)
 grid_size = 2400
 
 xx <- lapply(years, function(year){

@@ -57,15 +57,13 @@ for (id in 1:nrow(planning_grids)){
     main_dir, "fishnet", 
     glue::glue("{testSite}_{planning_unit_size}km_fishnet.shp")
   )
-  fishnet_polygon <- st_read(FishnetPath, quiet = TRUE)
-  gridID <- unique(fishnet_polygon$PageName)
   
-  globalIntensityDataPath <- list.files(
+  LocalDataPath <- list.files(
     file.path(main_dir, "land_use_change/agric_intensity", testSite),
     pattern = "\\.tif$", full.names = TRUE
   )
   # filter only focal grid size
-  globalIntensityDataPath <- grep(grid_size, globalIntensityDataPath, value = TRUE)
+  LocalDataPath <- grep(grid_size, LocalDataPath, value = TRUE)
   
   for(year in years){
     
@@ -82,7 +80,7 @@ for (id in 1:nrow(planning_grids)){
     global_share_spare_pipeline(
       year = year, 
       output_file = out, 
-      IntensityPath = globalIntensityDataPath,
+      IntensityPath = LocalDataPath,
       globalFishnetPath = FishnetPath
     )
     # Clear the temp file
@@ -98,3 +96,4 @@ plan(sequential)
 elapsed_time <- Sys.time() - strttime
 print(paste("\nFinished at:", Sys.time()))
 print(paste("Total elapsed time:", round(elapsed_time, 2), units(elapsed_time)))
+
